@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Attendance Records</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% comment %} <link rel="stylesheet" href="{% static 'css/styles.css' %}"> {% endcomment %}
+</head>
+<body>
+    <h1>Attendance Records</h1>
+    <a href="{% url 'authorized_dashboard' %}">Back to Dashboard</a>
+    <a href="{% url 'authorized_logout' %}">Logout</a>
+
+    <form method="GET" action="{% url 'view_attendance_records' %}">
+        <input type="text" name="q" placeholder="Search by username or name" value="{{ query }}">
+        <button type="submit">Search</button>
+    </form>
+
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Employee Username</th>
+                <th>Employee Name</th>
+                <th>First Check-In</th>
+                <th>Last Check-Out</th>
+                <th>Is Late</th>
+                <th>Lateness Duration</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in page_obj.object_list %}
+                <tr>
+                    <td>{{ record.date }}</td>
+                    <td>{{ record.employee.username }}</td>
+                    <td>{{ record.employee.profile.full_name }}</td>
+                    <td>{% if record.first_check_in %}{{ record.first_check_in }}{% else %}--{% endif %}</td>
+                    <td>{% if record.last_check_out %}{{ record.last_check_out }}{% else %}--{% endif %}</td>
+                    <td>{{ record.is_late }}</td>
+                    <td>
+                        {% if record.lateness_duration %}
+                            {{ record.lateness_duration }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr>
+                    <td colspan="7">No records found.</td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    <div class="pagination">
+        <span class="step-links">
+            {% if page_obj.has_previous %}
+                <a href="?page=1{% if query %}&q={{ query }}{% endif %}">&laquo; first</a>
+                <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">previous</a>
+            {% endif %}
+
+            <span class="current">
+                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+            </span>
+
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">next</a>
+                <a href="?page={{ page_obj.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">last &raquo;</a>
+            {% endif %}
+        </span>
+    </div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Personnel Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% comment %} <link rel="stylesheet" href="{% static 'css/styles.css' %}"> {% endcomment %}
+</head>
+<body>
+    <h1>Welcome, {{ request.user.username }} (Personnel)</h1>
+    <a href="{% url 'personnel_logout' %}">Logout</a>
+    <!-- Add Personnel-specific functionalities here -->
+    <p>
+        {% if messages %}
+        <ul>
+            {% for message in messages %}
+                <li>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+        <a href="{% url 'attendance_check_in' %}">Check In</a> | 
+        <a href="{% url 'attendance_check_out' %}">Check Out</a>
+    </p>
+</body>
+</html>
