@@ -12,7 +12,7 @@ class EmployeeProfile(models.Model):
     full_name = models.CharField(max_length=255)
     department = models.CharField(max_length=100)
     position = models.CharField(max_length=100)
-    annual_leave_balance = models.PositiveIntegerField(default=15)
+    annual_leave_balance = models.DecimalField(max_digits=5, decimal_places=2, default=15.00)
 
     def __str__(self):
         return self.full_name
@@ -24,6 +24,7 @@ class AttendanceRecord(models.Model):
     last_check_out = models.TimeField(null=True, blank=True)
     is_late = models.BooleanField(default=False)
     lateness_duration = models.DurationField(null=True, blank=True)
+    leave_deducted = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)
 
     def __str__(self):
         return f"{self.employee.username} - {self.date}"

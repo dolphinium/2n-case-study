@@ -36,6 +36,7 @@
                     <td>{{ record.employee.profile.full_name }}</td>
                     <td>{% if record.first_check_in %}{{ record.first_check_in }}{% else %}--{% endif %}</td>
                     <td>{% if record.last_check_out %}{{ record.last_check_out }}{% else %}--{% endif %}</td>
+                    
                     <td>{{ record.is_late }}</td>
                     <td>
                         {% if record.lateness_duration %}
