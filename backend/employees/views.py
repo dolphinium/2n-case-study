@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .decorators import personnel_required, authorized_user_required    # custom decorators
 from .forms import CheckInForm, CheckOutForm
-from .models import AttendanceRecord, LeaveRequest, Notification
+from .models import AttendanceRecord, LeaveRequest, Notification, MonthlyReport, User
 from datetime import datetime, time, timedelta
 from django.utils import timezone
 from django.db.models import Q, Sum
@@ -135,6 +135,7 @@ def notify_authorized_users_late(employee, date, lateness, deduction):
     for user in authorized_users:
         Notification.objects.create(recipient=user, message=message)
 
+
 @login_required(login_url='personnel_login')
 @user_passes_test(is_personnel)
 def view_leave_balance(request):
@@ -190,7 +191,7 @@ def notify_authorized_users_leave_request(leave_request):
     message = f"Employee {leave_request.employee.username} has requested leave from {leave_request.start_date} to {leave_request.end_date} ({leave_request.days} days). Reason: {leave_request.reason}"
     for user in authorized_users:
         Notification.objects.create(recipient=user, message=message)
-        
+
         
 @login_required(login_url='authorized_login')
 @user_passes_test(is_authorized_user)
@@ -234,6 +235,11 @@ def notify_employee_leave_decision(leave_request):
         message = f"Your leave request from {leave_request.start_date} to {leave_request.end_date} has been rejected."
     Notification.objects.create(recipient=employee, message=message)
 
+
+
+
+
+
 def notify_authorized_users_low_leave(user):
     User = get_user_model() # import from model can also resolve the issue
     # Check if leave balance is below 3 days
@@ -242,6 +248,7 @@ def notify_authorized_users_low_leave(user):
         message = f"Employee {user.username} now has {user.profile.annual_leave_balance} days of annual leave remaining."
         for auth_user in authorized_users:
             Notification.objects.create(recipient=auth_user, message=message)
+
 
 @login_required(login_url='personnel_login')
 @user_passes_test(is_personnel)
@@ -299,3 +306,28 @@ def view_attendance_records(request):
         'query': query,
     }
     return render(request, 'employees/view_attendance_records.html', context)
+
+
+@login_required(login_url='authorized_login')
+@user_passes_test(is_authorized_user)
+def view_monthly_reports(request):
+    reports = MonthlyReport.objects.select_related('employee').all().order_by('-year', '-month')
+    
+    # Search or filter functionality can be added here
+    query = request.GET.get('q')
+    if query:
+        reports = reports.filter(
+            Q(employee__username__icontains=query) |
+            Q(employee__profile__full_name__icontains=query)
+        )
+    
+    # Pagination
+    paginator = Paginator(reports, 20)  # Show 20 reports per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'query': query,
+    }
+    return render(request, 'employees/view_monthly_reports.html', context)

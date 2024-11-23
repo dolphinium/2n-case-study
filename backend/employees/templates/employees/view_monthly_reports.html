@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Monthly Attendance Reports</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Monthly Attendance Reports</h2>
+        <a href="{% url 'authorized_dashboard' %}" class="btn btn-secondary mb-3">Back to Dashboard</a>
+        
+        <form method="GET" action="{% url 'view_monthly_reports' %}" class="mb-3">
+            <div class="input-group">
+                <input type="text" name="q" class="form-control" placeholder="Search by username or name" value="{{ query }}">
+                <button type="submit" class="btn btn-primary">Search</button>
+            </div>
+        </form>
+
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Employee Username</th>
+                    <th>Employee Name</th>
+                    <th>Month</th>
+                    <th>Year</th>
+                    <th>Total Working Hours</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for report in page_obj.object_list %}
+                    <tr>
+                        <td>{{ report.employee.username }}</td>
+                        <td>{{ report.employee.profile.full_name }}</td>
+                        <td>{{ report.month }}</td>
+                        <td>{{ report.year }}</td>
+                        <td>{{ report.total_working_hours }}</td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="5">No reports found.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination Controls -->
+        <div class="pagination">
+            <span class="step-links">
+                {% if page_obj.has_previous %}
+                    <a href="?page=1{% if query %}&q={{ query }}{% endif %}">&laquo; first</a>
+                    <a href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}">previous</a>
+                {% endif %}
+
+                <span class="current">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}.
+                </span>
+
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}">next</a>
+                    <a href="?page={{ page_obj.paginator.num_pages }}{% if query %}&q={{ query }}{% endif %}">last &raquo;</a>
+                {% endif %}
+            </span>
+        </div>
+    </div>
+</body>
+</html>

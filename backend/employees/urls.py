@@ -27,4 +27,7 @@ urlpatterns = [
     path('leave/request/', views.request_leave, name='request_leave'),
     path('leave/pending/', views.view_pending_leave_requests, name='view_pending_leave_requests'),
     path('leave/approve/<int:leave_id>/', views.approve_leave, name='approve_leave'),
+    
+    # Monthly reports
+    path('reports/monthly/', views.view_monthly_reports, name='view_monthly_reports'),
 ]
