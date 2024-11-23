@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Review Leave Request</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Review Leave Request</h2>
+        <p><strong>Employee:</strong> {{ leave_request.employee.username }}</p>
+        <p><strong>Start Date:</strong> {{ leave_request.start_date }}</p>
+        <p><strong>End Date:</strong> {{ leave_request.end_date }}</p>
+        <p><strong>Days:</strong> {{ leave_request.days }}</p>
+        <p><strong>Reason:</strong> {{ leave_request.reason }}</p>
+
+        <form method="POST">
+            {% csrf_token %}
+            <button type="submit" name="action" value="approve" class="btn btn-success">Approve</button>
+            <button type="submit" name="action" value="reject" class="btn btn-danger">Reject</button>
+        </form>
+
+        <a href="{% url 'view_pending_leave_requests' %}" class="btn btn-secondary mt-3">Back to Pending Requests</a>
+    </div>
+</body>
+</html>

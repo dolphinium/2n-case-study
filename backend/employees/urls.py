@@ -21,4 +21,10 @@ urlpatterns = [
     
     # Attendance Reporting
     path('attendance/records/', views.view_attendance_records, name='view_attendance_records'),
+    
+    # Leave Management URLs
+    path('leave/balance/', views.view_leave_balance, name='view_leave_balance'),
+    path('leave/request/', views.request_leave, name='request_leave'),
+    path('leave/pending/', views.view_pending_leave_requests, name='view_pending_leave_requests'),
+    path('leave/approve/<int:leave_id>/', views.approve_leave, name='approve_leave'),
 ]

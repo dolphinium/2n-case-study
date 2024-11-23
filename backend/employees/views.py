@@ -4,12 +4,15 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from .decorators import personnel_required, authorized_user_required    # custom decorators
 from .forms import CheckInForm, CheckOutForm
-from .models import AttendanceRecord, EmployeeProfile, Notification
+from .models import AttendanceRecord, LeaveRequest, Notification
 from datetime import datetime, time, timedelta
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Sum
+from django.db import models
 from django.core.paginator import Paginator
 from decimal import Decimal
+from .forms import LeaveRequestForm
+from django.shortcuts import get_object_or_404
 
 def personnel_login(request):
     if request.method == 'POST':
@@ -132,6 +135,104 @@ def notify_authorized_users_late(employee, date, lateness, deduction):
     for user in authorized_users:
         Notification.objects.create(recipient=user, message=message)
 
+@login_required(login_url='personnel_login')
+@user_passes_test(is_personnel)
+def view_leave_balance(request):
+    user = request.user
+    profile = user.profile
+    total_leave = float(profile.annual_leave_balance)  # Convert Decimal to float for arithmetic
+    # Calculate granted leave doesn't count from
+    approved_leave = LeaveRequest.objects.filter(employee=user, status='A').aggregate(total=Sum('days')).get('total') or 0
+    approved_leave = float(approved_leave)  # Ensure it's a float
+    remaining_leave = total_leave - approved_leave  # Calculate remaining leave
+    
+    context = {
+        'total_leave': total_leave,
+        'used_leave': approved_leave,
+        'remaining_leave': remaining_leave  # Pass remaining_leave to the template
+    }
+    return render(request, 'employees/view_leave_balance.html', context)
+
+
+@login_required(login_url='personnel_login')
+@user_passes_test(is_personnel)
+def request_leave(request):
+    user = request.user
+    profile = user.profile
+    if request.method == 'POST':
+        form = LeaveRequestForm(request.POST)
+        if form.is_valid():
+            leave_request = form.save(commit=False)
+            leave_request.employee = user
+            # Calculate number of days
+            leave_request.days = (leave_request.end_date - leave_request.start_date).days + 1
+            # Check if sufficient leave balance
+            if profile.annual_leave_balance >= leave_request.days:
+                profile.annual_leave_balance -= leave_request.days
+                profile.save()
+                leave_request.save()
+                # Notify Authorized Users
+                notify_authorized_users_leave_request(leave_request)
+                messages.success(request, "Leave request submitted successfully.")
+                return redirect('view_leave_balance')
+            else:
+                messages.error(request, "Insufficient leave balance for the requested period.")
+    else:
+        form = LeaveRequestForm()
+    context = {
+        'form': form
+    }
+    return render(request, 'employees/request_leave.html', context)
+
+def notify_authorized_users_leave_request(leave_request):
+    User = get_user_model() # import from model can also resolve the issue
+    authorized_users = User.objects.filter(is_authorized=True)
+    message = f"Employee {leave_request.employee.username} has requested leave from {leave_request.start_date} to {leave_request.end_date} ({leave_request.days} days). Reason: {leave_request.reason}"
+    for user in authorized_users:
+        Notification.objects.create(recipient=user, message=message)
+        
+        
+@login_required(login_url='authorized_login')
+@user_passes_test(is_authorized_user)
+def approve_leave(request, leave_id):
+    leave_request = get_object_or_404(LeaveRequest, id=leave_id, status='P')
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'approve':
+            leave_request.status = 'A'
+            messages.success(request, "Leave request approved.")
+        elif action == 'reject':
+            # Refund the leave days if rejected
+            profile = leave_request.employee.profile
+            profile.annual_leave_balance += leave_request.days
+            profile.save()
+            leave_request.status = 'R'
+            messages.success(request, "Leave request rejected.")
+        leave_request.responded_at = timezone.now()
+        leave_request.save()
+
+        # Notify the employee about the decision
+        notify_employee_leave_decision(leave_request)
+
+        return redirect('view_pending_leave_requests')
+    return render(request, 'employees/approve_leave.html', {'leave_request': leave_request})
+
+@login_required(login_url='authorized_login')
+@user_passes_test(is_authorized_user)
+def view_pending_leave_requests(request):
+    pending_requests = LeaveRequest.objects.filter(status='P').order_by('-requested_at')
+    context = {
+        'pending_requests': pending_requests
+    }
+    return render(request, 'employees/view_pending_leave_requests.html', context)
+
+def notify_employee_leave_decision(leave_request):
+    employee = leave_request.employee
+    if leave_request.status == 'A':
+        message = f"Your leave request from {leave_request.start_date} to {leave_request.end_date} has been approved."
+    elif leave_request.status == 'R':
+        message = f"Your leave request from {leave_request.start_date} to {leave_request.end_date} has been rejected."
+    Notification.objects.create(recipient=employee, message=message)
 
 def notify_authorized_users_low_leave(user):
     User = get_user_model() # import from model can also resolve the issue

@@ -43,9 +43,15 @@ class LeaveRequest(models.Model):
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='P')
     requested_at = models.DateTimeField(auto_now_add=True)
     responded_at = models.DateTimeField(null=True, blank=True)
-
+    days = models.DecimalField(max_digits=5, decimal_places=2, default=0.00)  
+    
     def __str__(self):
         return f"{self.employee.username} - {self.get_status_display()} from {self.start_date} to {self.end_date}"
+    
+    def save(self, *args, **kwargs):
+        # Calculate number of days upon saving
+        self.days = (self.end_date - self.start_date).days + 1
+        super().save(*args, **kwargs)
     
 
 class Notification(models.Model):
